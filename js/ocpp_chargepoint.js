@@ -95,7 +95,7 @@ function getKey(key,default_value="") {
 //
 //
 export default class ChargePoint {
-    
+
     //
     // Constructor
     // @param a callback function that will receive debug logging information
@@ -106,7 +106,16 @@ export default class ChargePoint {
         this._statusChangeCb       = null;
         this._availabilityChangeCb = null;
         this._loggingCb            = null;
-    } 
+    }
+
+    // @todo: Shitty code to remove asap => real transaction support
+    setLastAction(action) {
+        setSessionKey("LastAction",action);
+    }
+    // @todo: Shitty code to remove asap
+    getLastAction(){
+        return getSessionKey("LastAction");
+    }
 
     //
     // Set the StatusChange callback, this will be triggered when the internal status
@@ -116,7 +125,7 @@ export default class ChargePoint {
     setStatusChangeCallback(cb) {
         this._statusChangeCb = cb;
     }
-    
+
     //
     // Set the logging callback, this will be triggered when the charge point want to output/log some information
     // @param A callback function which takes a string argument ("message to log")
@@ -124,7 +133,7 @@ export default class ChargePoint {
     setLoggingCallback(cb) {
         this._loggingCb = cb;
     }
-    
+
     //
     // Set the logging callback, this will be triggered when the OCPP server triggers a SetAvailability message
     // @param A callback function which takes two arguments (int + string): (connectorId,"new availability")
@@ -132,7 +141,7 @@ export default class ChargePoint {
     setAvailabilityChangeCallback(cb) {
         this._availabilityChangeCb = cb;
     }
-    
+
     //
     // output a log to the logging callback if any
     //
@@ -154,7 +163,7 @@ export default class ChargePoint {
             this._statusChangeCb(s,msg);
         }
     }
-    
+
     //
     // Handle a command coming from the OCPP server
     //
@@ -189,14 +198,14 @@ export default class ChargePoint {
             case "TriggerMessage":
                 var requestedMessage = payload.requestedMessage;
                 // connectorId is optionnal thus must check if it is provided
-                if(payload["connectorId"]) { 
+                if(payload["connectorId"]) {
                     connectorId = payload["connectorId"];
                 }
                 this.logMsg("Reception of a TriggerMessage request ("+requestedMessage+")");
                 this.wsSendData(respOk);
                 this.triggerMessage(requestedMessage,connectorId);
                 break;
-                
+
             case "ChangeAvailability":
                 var avail=payload.type;
                 connectorId=payload.connectorId;
@@ -204,7 +213,7 @@ export default class ChargePoint {
                 this.wsSendData(respOk);
                 this.setConnectorAvailability(Number(connectorId),avail)
                 break;
-                
+
             case "UnlockConnector":
                 this.wsSendData(respOk);
                 // connector_locked = false;
@@ -221,7 +230,7 @@ export default class ChargePoint {
     }
 
     //
-    // Handle the response from the OCPP server to a command 
+    // Handle the response from the OCPP server to a command
     // @param payload The payload part of the OCPP message
     //
     handleCallResult(payload) {
@@ -245,7 +254,7 @@ export default class ChargePoint {
             else {
                 this.logMsg('Authorization OK');
                 this.setStatus(ocpp.CP_AUTHORIZED);
-            } 
+            }
         }
         else if (la == "startTransaction") {
             var transactionId = payload.transactionId;
@@ -307,7 +316,7 @@ export default class ChargePoint {
         var transactionId=getSessionKey("TransactionId");
         this.stopTransactionWithId(transactionId,tagId);
     }
-    
+
     //
     // Send a StopTransaction call to the OCPP Server
     // @param transactionId the id of the transaction to stop
@@ -319,7 +328,7 @@ export default class ChargePoint {
         var mv=this.meterValue();
         this.logMsg("Stopping Transaction with id "+transactionId+" (meterValue="+mv+")");
         var id=generateId();
-        var stopParams = {           
+        var stopParams = {
             "transactionId": transactionId,
             "timestamp": formatDate(new Date()),
             "meterStop": mv};
@@ -330,7 +339,7 @@ export default class ChargePoint {
         this.wsSendData(stpT);
         this.setConnectorStatus(1,ocpp.CONN_AVAILABLE);
     }
-    
+
     //
     // Implement the TriggerMessage request
     // @param requestedMessage the message that shall be triggered
@@ -359,7 +368,7 @@ export default class ChargePoint {
                 break;
         }
     }
-    
+
     //
     // Send a BootNotification call to the OCPP Server
     //
@@ -381,15 +390,6 @@ export default class ChargePoint {
         this.wsSendData(bn_req);
     }
 
-    // @todo: Shitty code to remove asap => real transaction support
-    setLastAction(action) {
-        setSessionKey("LastAction",action);
-    }
-    // @todo: Shitty code to remove asap
-    getLastAction(){
-        return getSessionKey("LastAction");
-    }
-    
     //
     // Setup heartbeat sending at the appropriate period
     // (clearing any previous setup)
@@ -400,7 +400,7 @@ export default class ChargePoint {
         if (this._heartbeat) {
             clearInterval(this._heartbeat);
         }
-        this._heartbeat = setInterval(this.sendHeartbeat,period*1000);
+        this._heartbeat = setInterval(() => this.sendHeartbeat(),period*1000);
     }
 
     //
@@ -413,10 +413,10 @@ export default class ChargePoint {
         this.logMsg('Heartbeat');
         this.wsSendData(HB);
     }
-    
+
     //
     // Send data to the server (will be also logged in console)
-    // @data the data to send 
+    // @data the data to send
     //
     wsSendData(data) {
         console.log("SEND: "+data);
@@ -427,14 +427,14 @@ export default class ChargePoint {
             this.setStatus(ocpp.CP_ERROR,'No connection to OCPP server')
         }
     }
-    
+
     //
     // @return the internal state of the CP
     //
     status() {
         return getSessionKey(ocpp.KEY_CP_STATUS);
     }
-    
+
     //
     // Open the websocket and set internal state accordingly
     // @param wsurl The URL of the OCPP server
@@ -444,7 +444,7 @@ export default class ChargePoint {
         if (this._websocket) {
             this.setStatus(ocpp.CP_ERROR,'Socket already opened. Closing it. Retry later');
             this._websocket.close(3001);
-        } 
+        }
         else {
 
             this._websocket = new WebSocket(wsurl + "" + cpid, ["ocpp1.6", "ocpp1.5"]);
@@ -460,7 +460,7 @@ export default class ChargePoint {
 
             //
             // OnError Callback
-            //                  
+            //
             this._websocket.onerror = function(evt) {
                 switch(self._websocket.readyState) {
                     case 1: // OPEN
@@ -479,7 +479,7 @@ export default class ChargePoint {
             //
             // OnMessage Callback
             // Decode the type of message and pass it to the appropriate handler
-            // 
+            //
             this._websocket.onmessage = function(msg) {
                 console.log("RECEIVE: "+msg.data);
                 var ddata = (JSON.parse(msg.data));
@@ -487,7 +487,7 @@ export default class ChargePoint {
                 // Decrypt Message Type
                 var msgType=ddata[0];
                 switch(msgType) {
-                    case 2: // CALL 
+                    case 2: // CALL
                         var id=ddata[1];
                         var request=ddata[2];
                         var payload=null;
@@ -496,7 +496,7 @@ export default class ChargePoint {
                         }
                         self.handleCallRequest(id,request,payload);
                         break;
-                    case 3: // CALLRESULT 
+                    case 3: // CALLRESULT
                         self.handleCallResult(ddata[2]);
                         break;
                     case 4: // CALLERROR
@@ -507,7 +507,7 @@ export default class ChargePoint {
 
             //
             // OnClose Callback
-            //   
+            //
             this._websocket.onclose = function(evt) {
                 if (evt.code == 3001) {
                     self.setStatus(ocpp.CP_DISCONNECTED);
@@ -531,14 +531,14 @@ export default class ChargePoint {
         }
         this.setStatus(ocpp.CP_DISCONNECTED);
     }
-    
+
     //
     // Return the meter value
     //
     meterValue() {
         return (getSessionKey(ocpp.KEY_METER_VALUE,"0"));
     }
-    
+
     //
     // Set the meter value (and optionnally update the OCPP server with it)
     // @param v the new meter value
@@ -550,7 +550,7 @@ export default class ChargePoint {
             this.sendMeterValue();
         }
     }
-    
+
     //
     // update the server with the internal meter value
     //
@@ -564,7 +564,7 @@ export default class ChargePoint {
         this.logMsg("Send Meter Values: "+meter+" (connector " +c+")");
         this.wsSendData(mvreq);
     }
-    
+
     //
     // Get the status of given connector
     // @param c connectorId
@@ -574,7 +574,7 @@ export default class ChargePoint {
         var key = ocpp.KEY_CONN_STATUS + c;
         return getSessionKey(key);
     }
-    
+
     //
     // Update status of given connector
     // @param c connectorId
@@ -588,7 +588,7 @@ export default class ChargePoint {
             this.sendStatusNotification(c,newStatus);
         }
     }
-    
+
     //
     // Send a StatusNotification to the server with the new status of the specified connector
     // @param c The connector id (0 for CP, 1 for connector 1, etc...)
@@ -609,7 +609,7 @@ export default class ChargePoint {
         this.logMsg("Sending StatusNotification for connector "+c+": "+st);
         this.wsSendData(sn_req);
     }
-    
+
     //
     // Get availability for given connector
     // (availability is persistent thus stored in local storage instead of session storage)

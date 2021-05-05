@@ -1,0 +1,25 @@
+{
+  "name": "ocpp-chargepoint-simulator",
+  "version": "1.0.0",
+  "description": "Simulates an OCPP client that communicates through a WebSocket with a Central System.",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tom-DK/OCPP-ChargePoint-Simulator.git"
+  },
+  "keywords": [
+    "OCPP"
+  ],
+  "author": "Tom De Kooning",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Tom-DK/OCPP-ChargePoint-Simulator/issues"
+  },
+  "homepage": "https://github.com/Tom-DK/OCPP-ChargePoint-Simulator#readme",
+  "dependencies": {
+    "serve": "^11.3.2"
+  }
+}
