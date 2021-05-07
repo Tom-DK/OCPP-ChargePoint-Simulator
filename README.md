@@ -2,9 +2,10 @@
 A simple Charge Point simulator written in Javascript and based on OCPP protocol
 (originally a fork and major rewrite from nenecmrf simulator, also borrowing some code from JavalsJavascript and svennorge forks).
 
-## Installation
-Just clone in a directory accessible from your webserver and point your browser to it.
-Go to the setting tab and configure the URL of your OCPP server as well as your Charge Point Id
+## Usage
+``npm install``
+
+``npm run start``
 
 ## Changes:
 * Rewrite / Refactoring
